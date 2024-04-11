@@ -11,14 +11,13 @@ import ru.zgrv.otrs.models.Person
 import ru.zgrv.otrs.templates.CallbackTemplates
 import ru.zgrv.otrs.templates.KeyboardTemplates
 import ru.zgrv.otrs.templates.TextTemplates
-import ru.zgrv.otrs.utils.MessageBuilder
-import ru.zgrv.otrs.utils.displayProfileText
-import ru.zgrv.otrs.utils.textFormByStage
+import ru.zgrv.otrs.utils.*
 
 @Service
 class RequestService(
     private val sessionService: SessionService,
     private val personService: PersonService,
+    private val emailService: EmailService,
 ) {
 
     fun handleUpdate(bot: TelegramBot, update: Update) {
@@ -30,6 +29,7 @@ class RequestService(
         val chatId = message.chatId.toString()
         val text = message.text
         val session = sessionService.getSession(chatId)
+        sessionService.updateLastTimeActivity(session)
 
         // Обработка нового пользователя
         if (isNewUser(chatId) && session.stage != SessionStage.CHANGING_PERSONAL_DATA) {
@@ -39,7 +39,7 @@ class RequestService(
 
         // Обработка ввода данных пользователя
         if (session.stage == SessionStage.CHANGING_PERSONAL_DATA) {
-            session.dataFiller.enterData(text)
+            session.dataFiller.enterData(text).toString()
             session.dataFiller.next()
 
             /* Проверка, что анкета заполнена,
@@ -56,13 +56,17 @@ class RequestService(
             return
         }
 
-        //
-        if(session.stage == SessionStage.MAKING_REQUEST) {
+        // Обработка ввода описания проблемы и отправка сообщения
+        if (session.stage == SessionStage.MAKING_REQUEST) {
             session.stage = SessionStage.SENDING_REQUEST
             session.dataFiller.problem = text
             bot.execute(MessageBuilder.build(TextTemplates.BEFORE_REQUEST_SEND.text, chatId))
 
-            // TODO("ОТПРАВКА СООБЩЕНИЙ")
+            emailService.sendTextEmail(
+                "${session.person.company}. ${session.person.name}",
+                fullRequestText(session)
+            )
+
             bot.execute(MessageBuilder.build(TextTemplates.AFTER_REQUEST_SEND_SUCCESS.text, chatId))
             session.stage = SessionStage.MENU
 
@@ -77,6 +81,7 @@ class RequestService(
         val chatId = callbackQuery.message.chatId.toString()
         val data = callbackQuery.data
         val session = sessionService.getSession(chatId)
+        sessionService.updateLastTimeActivity(session)
 
         // Обработка нажатия кнопки заполнения анкеты
         if (isNewUser(chatId) && data == CallbackTemplates.CREATE_PROFILE.callback) {

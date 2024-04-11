@@ -5,16 +5,33 @@ import ru.zgrv.otrs.dto.PersonDTO
 import ru.zgrv.otrs.models.Person
 import ru.zgrv.otrs.templates.TextTemplates
 
+
+fun replaceIllegalCharacters(string: String): String {
+    return string.replace("+", "\\+").replace("-", "\\-").replace("*", "\\*")
+        .replace("_", "\\_").replace("#", "\\#").replace(".", "\\.")
+}
+
 fun displayProfileText(person: Person): String =
     """
         📑 *Ваши данные*
         
-        • ФИО: ${person.name}
-        • Номер телефона: ${person.phone}
-        • Почта: ${person.email}
-        • Компания: ${person.company}
+        • ФИО: ${replaceIllegalCharacters(person.name)}
+        • Номер телефона: ${replaceIllegalCharacters(person.phone)}
+        • Почта: ${replaceIllegalCharacters(person.email)}
+        • Компания: ${replaceIllegalCharacters(person.company)}
     """.trimIndent()
 
+fun fullRequestText(session: Session): String =
+    """
+        Данные заявителя
+        • ФИО: ${session.person.name}
+        • Номер телефона: ${session.person.phone}
+        • Почта: ${session.person.email}
+        • Компания: ${session.person.company}
+        ------------------------------
+        Текст заявки:
+        ${session.dataFiller.problem}
+    """.trimIndent()
 
 fun textFormByStage(session: Session): String = when (session.dataFiller.stage) {
     Session.DataFiller.DataFillerStage.NAME -> TextTemplates.ENTER_NAME.text

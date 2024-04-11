@@ -3,9 +3,9 @@ package ru.zgrv.otrs.templates
 enum class TextTemplates(val text: String) {
     NEW_USER_ALERT(
         """
-       ⚠️ Перед началом работы необходимо заполнить анкету*
+       ⚠️ Перед началом работы необходимо заполнить анкету
         
-          • ФИО
+          *• ФИО
           • Номер телефона
           • Почта
           • Компания*

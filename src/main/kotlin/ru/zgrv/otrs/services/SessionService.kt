@@ -18,4 +18,9 @@ class SessionService(
         return session
     }
 
+    fun updateLastTimeActivity(session: Session) {
+        session.lastActiveTime = System.currentTimeMillis()
+    }
+
+
 }
